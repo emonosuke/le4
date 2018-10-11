@@ -4,15 +4,25 @@ from cvxopt import matrix
 
 class SVClassifier(object):
     """
-    private: X, y, n, kf(kernel function), alpha, th
+    private: 
+    X, y, n - 訓練データ n はその個数
+    kf(kernel function), p, q - kernel function のそのパラメータ
+    alpha, th - 識別器の内部パラメータ
     """
 
-    def fit(self, X, y, ker_type):
+    def __init__(self, ker_type, p, q):
+        print(p, q)
+        self.__setKernelFunc(ker_type)
+        self.__p = p
+        self.__q = q
+
+    def fit(self, X, y):
         self.__n = y.shape[0]
         self.__X = X
         self.__y = y
-        self.__setKernelFunc(ker_type)
+        # self.__alpha を設定する 
         self.__setLagrange()
+        # self.__th を設定する
         self.__setClassifier()
     
     def predict(self, tX):
@@ -25,13 +35,6 @@ class SVClassifier(object):
             res -= self.__th
             preds.append(np.sign(res))
         return np.array(preds)
-
-        """
-        for i in range(self.__n):
-            res += self.__alpha[i] * self.__y[i] * self.__kf(self.__X[i], tX)
-        res -= self.__th
-        return np.sign(res)
-        """
     
     def __setLagrange(self):
         tP = np.zeros((self.__n, self.__n)) # size n * n の numpy 配列 tP を 0 で初期化
@@ -51,7 +54,9 @@ class SVClassifier(object):
         sol = cvxopt.solvers.qp(P=P, q=q, G=G, h=h, A=A, b=b)
 
         self.__alpha = np.array(sol["x"])
-        print("alpha: ", self.__alpha)
+        print("alpha: ")
+        for i in range(self.__n):
+            print(i, self.__alpha[i])
     
     def __setKernelFunc(self, ker_type):
         if ker_type == 'p':
@@ -76,11 +81,11 @@ class SVClassifier(object):
         print("theta candidates: ", [ths[i][0] for i in range(len(ths))])
         self.__th = np.mean(ths)
 
-    def __kernelPolynomial(self, a, b, p=2):
-        return (1.0 + np.dot(a, b)) ** p
+    def __kernelPolynomial(self, a, b):
+        return (1.0 + np.dot(a, b)) ** self.__p
     
-    def __kernelGauss(self, a, b, p=10):
-        pass
+    def __kernelGauss(self, a, b):
+        return np.exp(-(np.linalg.norm(a - b) ** 2) / (2 * self.__p ** 2))
 
-    def __kernelSigmoid(self, a, b, p1, p2):
-        pass
+    def __kernelSigmoid(self, a, b):
+        return np.tanh(self.__p * np.dot(a, b) + self.__q)
