@@ -3,6 +3,7 @@
 \usepackage{listings,jlisting}
 \usepackage[dvipdfmx]{graphicx}
 \usepackage{bmpsize}
+\usepackage{bm}
 
 \lstset{
     basicstyle={\ttfamily},
@@ -71,8 +72,7 @@ matplotlib 2.0.2
 \end{lstlisting}
 
 \section{内部仕様}
-\underline{svc.py}
-\subsection*{SVClassifierクラス}
+\subsection*{SVClassifierクラス(svc.py)}
 サポートベクタマシンを定義する.
 privateメンバ
 \begin{itemize}
@@ -90,24 +90,42 @@ X, y, nを決定して、alpha, thetaを決定する各関数を呼び出す \\
 
 \subsection*{\_setLagrange}
 以下の2次計画問題をcvxopt.solvers.qpを用いて解くことで、alphaを決定する \\
+\begin{eqnarray}
+\max \{\sum_{k=0} \alpha_k - \sum_{k=0} \sum_{l=0} \alpha_k y_k \alpha_l y_l K(\bm{x_k}, \bm{x_l}) / 2\} \\
+(\sum_{k=0} \alpha_k y_k = 0, 0 < \alpha_k)
+\end{eqnarray}
+cvxopt.solvers.qpでは、以下の2次計画問題を解くため、これが以上と等価になるようにP, q, G, h, A, bを与える。($\bm{x}$を求めるalphaとみる)
+\begin{eqnarray}
+\min \{\bm{x}^T P \bm{x} / 2 + q^T \bm{x}\} \\
+(G \bm{x} <= h, A \bm{x} = b)
+\end{eqnarray}
 
 \subsection*{\_setClassifier}
 alphaとx, yからthetaを決定して、"W = , $\theta$ = "の形で識別器を出力する \\
+alphaが0でないサポートベクタ点$\bm{x_i}$に関して、$\theta_i = \sum_{k=0} \alpha_k y_k K(\bm{x_k}, \bm{x_i}) - y_i$を求める。
+これらは、iによらず一定であることを表示して確認して、その平均をthetaとする。
+また、$W=\sum_{k=0} \alpha_k y_k \bm{x_k}$をthetaとともに表示する。
 
 \subsection*{\_kernelPolynomial}
-多項式カーネル
+多項式カーネル $K(\bm{a}, \bm{b}) = (1 + (\bm{a}, \bm{b}))^p$ を実装する \\
+@param[in] a(batch\_size, dim), b(dim) aはバッチ入力に対応している 
 
 \subsection*{\_kernelGauss}
+Gaussカーネル $K(\bm{a}, \bm{b}) = \exp(-\|\bm{a}-\bm{b}\| / 2p^2)$ を実装する \\
+@param[in] a(batch\_size, dim), b(dim) aはバッチ入力に対応している \\
+numpy.linalg.normでノルムを計算するときに、行方向か列方向かを指定するため、aがバッチ入力か否かで実装が変わっている。
 
 \subsection*{\_kernelSigmoid}
+シグモイドカーネル $K(\bm{a}, \bm{b}) = \tanh (p(\bm{a}, \bm{b}) + q)$ を実装する \\
+@param[in] a(batch\_size, dim), b(dim) aはバッチ入力に対応している
 
 \subsection*{predict}
 SVMによりtXのクラスの予測をする \\
-@param[in] tX テストデータ
+@param[in] tX(batch\_size * dim) テストデータ \\
+SVMの識別関数は、$f(\bm{x}) = sign(\sum_{k=0} \alpha_k y_k K(\bm{x_k}, \bm{x}) - \theta)$とする。
+各tX[i]について、前計算したay = $\sum_{k=0} \alpha_k y_k$ と K($\bm{x}$, tX[i]) の行列積によりこの値を計算する。
 
-
-\underline{utils.py}
-\subsection*{load\_data}
+\subsection*{load\_data(utils.py)}
 filepathにあるsample\_linear.dat同様の形式のデータをX,yに読み込む \\
 @param[in] filepath \\
 @return X, y \\
@@ -118,7 +136,7 @@ filepathにあるsample\_linear.dat同様の形式のデータをX,yに読み込
 \end{lstlisting}
 1行ごとに", "でsplitして処理するためデータ点がn次元の特徴で表せる場合にも対応できる。
 
-\subsection*{plot\_decision\_regions}
+\subsection*{plot\_decision\_regions(utils.py)}
 xを2次元平面にplotする.
 plotされた点の色はyによって決まり、領域の色はmodelの予測結果により決まる \\
 @param[in] x, y, model, resolution resolutionによりグリッドの幅を指定する \\
@@ -129,14 +147,20 @@ x=(x1, x2)に対する正解クラスをy, SVMによる予測クラスをzとす
 その後、各xの点をyに応じた色(red, blue)と形(o, x)でplotする。
 
 \section{評価結果}
-% sklearn で確認したい
 \subsection{sample\_linear.dat}
+sample\_linear.dat をカーネルなしSVMで学習すると図1がプロット結果として得られた。
 \begin{figure}[!h]
 \centering \includegraphics[width=15cm]{sample_linear.png}
 \caption{sample\_linear.dat}
 \end{figure}
 
 \subsection{sample\_circle.dat}
+sample\_circle.dat をGaussカーネル($\sigma$ = 10)SVMで学習すると図2がプロット結果として得られた。
+\begin{figure}[!h]
+\centering \includegraphics[width=15cm]{sample_circle.png}
+\caption{sample\_linear.dat}
+\end{figure}
+
 \subsection{poly\_five.dat}
 1次元データx=[1, 2, 5, 7, 8], y=[1, 1, -1, -1, 1]をpoly\_five.datとする。
 このとき、$\alpha$について以下のような結果が得られた。
@@ -150,6 +174,12 @@ alpha:
 \end{lstlisting}
 
 \section{考察}
+sample\_circle.datなど線形分離不可能なデータ点に対しては、線形SVMでは2次計画問題を解くことができずに
+プログラムが終了した。一方、カーネルSVM(たとえばGauss)では、パラメータを適切に設定することで
+データ点を高次元空間に射影して、非線形の決定境界でクラスを正確に分類することができた。
+線形SVMで2次計画問題が解けずに終了するのではなく、ソフトマージンを実装してある程度の精度で分類できるように
+したい。
+
 SVClassifier.predict の実装について、はじめは
 \begin{lstlisting}
 def predict(self, tX):
@@ -163,7 +193,12 @@ def predict(self, tX):
         preds.append(np.sign(res))
     return np.array(preds)
 \end{lstlisting}
-のように実装していたが、この場合for文を2重に
+のように実装していたが、このとき"./main.py data/sample\_circle.dat g 10.0"(resolution=0.1)を実行すると
+グラフを表示するまでに自分の環境では10分27秒必要だった。
+これは、計算量を概算すると、この実装では batch\_size(予測するデータのサイズ) * n(訓練データのサイズ)の計算量であり、
+x1, x2がおよそ(0, 50)の範囲で、0.1の幅でグリッド点を取ることを考えると、500*500*100と膨大になるためである。
+kernel関数をバッチ入力に対応させて、訓練データのサイズ分のfor文を無くした実装に変更すると自分の環境で0分8秒で実行できる
+ようになった。
 
 \section{参考資料}
 \begin{itemize}

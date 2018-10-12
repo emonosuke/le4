@@ -2,6 +2,7 @@ import numpy as np
 import cvxopt
 from cvxopt import matrix
 import tqdm
+import sys
 
 class SVClassifier(object):
     """
@@ -38,19 +39,10 @@ class SVClassifier(object):
         self.__setClassifier()    
     
     def predict(self, tX):
-        """
-        batch_size = tX.shape[0]
-        preds = []
-        for i in range(batch_size):
-            res = 0
-            for j in range(self.__n):
-                res += self.__alpha[j] * self.__y[j] * self.__kf(self.__X[j], tX[i])
-            res -= self.__theta
-            preds.append(np.sign(res))
-        return np.array(preds)
-        """
-
-        batch_size = tX.shape[0]
+        if tX.ndim == 1:
+            batch_size = 1
+        else:
+            batch_size = tX.shape[0]
         preds = []
         ay = np.array([self.__alpha[j] * self.__y[j] for j in range(self.__n)])
         ay = np.reshape(ay, (-1,))
@@ -76,7 +68,11 @@ class SVClassifier(object):
         # minimize (1/2)x^TPx + q^Tx
         # subject to Gx <= h, Ax = b
         sol = cvxopt.solvers.qp(P=P, q=q, G=G, h=h, A=A, b=b)
-
+        if sol['status'] == 'optimal':
+            print("cvxopt.solvers.qp: optimization succeeded")
+        else:
+            print("cvxopt.solvers.qp: optimization failed")
+            sys.exit(1)
         self.__alpha = np.array(sol["x"])
         print("alpha: ")
         for i in range(self.__n):
@@ -85,7 +81,7 @@ class SVClassifier(object):
     def __setClassifier(self):
         ths = []
         for j in range(self.__n):
-            if self.__alpha[j] < 1e-6: continue # サポートベクターのみ考える
+            if abs(self.__alpha[j]) < 1e-6: continue # サポートベクターのみ考える
             th = 0
             for i in range(self.__n):
                 th += self.__alpha[i] * self.__y[i] * self.__kf(self.__X[i], self.__X[j])
