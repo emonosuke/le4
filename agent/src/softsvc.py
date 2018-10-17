@@ -8,26 +8,24 @@ class SoftSVC(object):
     """
     private: 
     X, y, n - 訓練データ n はその個数
-    kf(kernel function), p, q - kernel function のそのパラメータ
+    kf(kernel function), p - kernel function のそのパラメータ
+    c - ソフトマージンのためのハイパーパラメータ
     alpha, theta - SVM の内部パラメータ
     """
 
-    def __init__(self, ker_type, p, q):
+    def __init__(self, ker_type, p, c):
         # defalut 値で初期化
         self.__p = 2.0
-        self.__q = 2.0
         if ker_type == 'p':
             self.__kf = self.__kernelPolynomial
         elif ker_type == 'g': 
             self.__kf = self.__kernelGauss
-        elif ker_type == 's':
-            self.__kf = self.__kernelSigmoid
         else:
             # expect ker_type == 'n'
             self.__kf = lambda a, b: np.dot(a, b)
         
         self.__p = p
-        self.__q = q
+        self.__C = c
 
     def fit(self, X, y):
         self.__n = y.shape[0]
@@ -60,14 +58,19 @@ class SoftSVC(object):
         
         P = matrix(tP)
         q = matrix(-np.ones(self.__n))
-        G = matrix(np.diag([-1.0] * self.__n))
-        h = matrix(np.zeros(self.__n))
+        # 0 <= alpha <= C
+        g1 = np.diag([-1.0] * self.__n)
+        g2 = np.diag([1.0] * self.__n)
+        G = matrix(np.concatenate((g1, g2), axis=0))
+        h1 = np.zeros(self.__n)
+        h2 = np.array([self.__C for i in range(self.__n)])
+        h = matrix(np.concatenate((h1, h2), axis=0))
         A = matrix(self.__y, (1, self.__n))
         b = matrix(0.0)
 
         # minimize (1/2)x^TPx + q^Tx
         # subject to Gx <= h, Ax = b
-        cvxopt.solvers.options['show_progress'] = False
+        # cvxopt.solvers.options['show_progress'] = False
         sol = cvxopt.solvers.qp(P=P, q=q, G=G, h=h, A=A, b=b)
         if sol['status'] == 'optimal':
             print("cvxopt.solvers.qp: optimization succeeded")
@@ -75,26 +78,38 @@ class SoftSVC(object):
             print("cvxopt.solvers.qp: optimization failed")
             sys.exit(1)
         self.__alpha = np.array(sol["x"])
-        # print("alpha: ")
-        # for i in range(self.__n):
-        #    print(i, self.__alpha[i])
+        print("alpha: ")
+        for i in range(self.__n):
+            print(i, self.__alpha[i])
     
     def __setClassifier(self):
         ths = []
-        for j in range(self.__n):
-            if abs(self.__alpha[j]) < 1e-6: continue # サポートベクターのみ考える
+
+        # サポートベクターのインデックス取得
+        # 0 < alpha < C
+        M = []
+
+        for idx in range(self.__n):
+            if self.__alpha[idx] > 1e-6 and self.__alpha[idx] < self.__C:
+                M.append(idx)
+
+        print("M: ")
+        print(M)
+        for mid in M:
             th = 0
-            for i in range(self.__n):
-                th += self.__alpha[i] * self.__y[i] * self.__kf(self.__X[i], self.__X[j])
-            th -= self.__y[j]
+            for j in range(self.__n):
+                th += self.__alpha[j] * self.__y[j] * self.__kf(self.__X[mid], self.__X[j])
+            th -= self.__y[mid]
             ths.append(th)
-        
+
         W = 0
         for i in range(self.__n):
             W += self.__alpha[i] * self.__y[i] * self.__X[i]
 
-        # print("theta candidates: ", [ths[i][0] for i in range(len(ths))])
+        print("theta candidates: ", [ths[i][0] for i in range(len(ths))])
         self.__theta = np.mean(ths)
+        # self.__theta = ths[0]
+
         # W = , θ = の形で識別器を出力する
         print("SVClassifier W = {}, θ = {}".format(W, self.__theta))
 
@@ -105,6 +120,3 @@ class SoftSVC(object):
         if a.ndim == 1:
             return np.exp(-(np.linalg.norm(a - b) ** 2) / (2 * self.__p ** 2))
         return np.exp(-(np.linalg.norm(a - b, axis=1) ** 2) / (2 * self.__p ** 2))
-
-    def __kernelSigmoid(self, a, b):
-        return np.tanh(self.__p * np.dot(a, b) + self.__q)
