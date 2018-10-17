@@ -1,0 +1,34 @@
+(not scaled)
+h26:src furh$ ./main.py data/sample_circle.dat g 1
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [36.95749682 88.49175372], θ = 0.3589787381627801
+fold 1/5 accuracy:  0.6
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [-18.17982577  97.31967208], θ = 0.23284707224012685
+fold 2/5 accuracy:  0.8
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [-16.63474727  57.37119243], θ = 0.3338093001052962
+fold 3/5 accuracy:  0.65
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [58.39906439 44.38031041], θ = 0.27059005872543634
+fold 4/5 accuracy:  0.75
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [11.99267799 95.55959744], θ = 0.3322657707926044
+fold 5/5 accuracy:  0.6
+(scaled by MinMaxScaler)
+h26:src furh$ ./main.py data/sample_circle.dat g 1
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [ 26.60248878 -30.00102035], θ = 161.51575043769233
+fold 1/5 accuracy:  1.0
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [-14.75663668 -13.06521174], θ = 56.3464654147725
+fold 2/5 accuracy:  0.9
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [-32.08802661 -24.86987346], θ = 113.16573005936723
+fold 3/5 accuracy:  0.95
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [ 11.92840164 -24.44039956], θ = 147.11930815032142
+fold 4/5 accuracy:  0.95
+cvxopt.solvers.qp: optimization succeeded
+SVClassifier W = [ 27.58400678 -11.95762386], θ = 114.503603596735
+fold 5/5 accuracy:  0.85

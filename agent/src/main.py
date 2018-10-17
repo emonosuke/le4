@@ -7,8 +7,9 @@ Usage:
         g: Gauss kernel [params: p]
         s: Sigmoid kernel [params: p q]
 """
-from utils import load_data, plot_decision_regions
+from utils import load_data, plot_decision_regions, cross_val_score
 from svc import SVClassifier
+from scaler import MinMaxScaler
 import sys
 import numpy as np
 
@@ -33,6 +34,7 @@ if __name__ == '__main__':
 
     svm = SVClassifier(kernel_type, p, q)
 
-    svm.fit(X, y)
+    # svm.fit(X, y)
+    cross_val_score(X, y, svm)
 
-    plot_decision_regions(X, y, svm, resolution=0.1)
+    # plot_decision_regions(X, y, svm, resolution=0.1)

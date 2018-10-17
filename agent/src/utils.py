@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
+from scaler import MinMaxScaler 
 
 def load_data(filepath):
     """
@@ -64,3 +65,24 @@ def plot_decision_regions(x, y, model, resolution=0.1):
     
     plt.legend(loc='upper left')
     plt.show()
+
+def cross_val_score(X, y, model, k=5):
+    """
+    k-fold の交差検証を行う
+    """
+    # TODO: shuffle
+    part = len(y) // k
+    for i in range(k):
+        test_X = X[part * i : part * (i+1)]
+        test_y = y[part * i : part * (i+1)]
+        train_X = np.concatenate((X[0:part*i], X[part*(i+1):-1]), axis=0)
+        train_y = np.concatenate((y[0:part*i], y[part*(i+1):-1]), axis=0)
+
+        # 特徴量のスケーリング(正規化)
+        sc = MinMaxScaler()
+        train_X_std = sc.fit_transform(train_X)
+        model.fit(train_X_std, train_y)
+        test_X_std = sc.transform(test_X)
+        pred = model.predict(test_X_std)
+        n_correct = sum(pred == test_y)
+        print("fold {}/{} accuracy: ".format(i+1, k), n_correct / len(pred))

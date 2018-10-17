@@ -46,8 +46,8 @@ class SVClassifier(object):
         preds = []
         ay = np.array([self.__alpha[j] * self.__y[j] for j in range(self.__n)])
         ay = np.reshape(ay, (-1,))
-        print("model predicting: ")
-        for i in tqdm.tqdm(range(batch_size)):
+        # print("model predicting: ")
+        for i in range(batch_size):
             K = self.__kf(self.__X, tX[i])
             preds.append(np.sign(np.dot(ay, K) - self.__theta))
         return np.array(preds)
@@ -67,6 +67,7 @@ class SVClassifier(object):
 
         # minimize (1/2)x^TPx + q^Tx
         # subject to Gx <= h, Ax = b
+        cvxopt.solvers.options['show_progress'] = False
         sol = cvxopt.solvers.qp(P=P, q=q, G=G, h=h, A=A, b=b)
         if sol['status'] == 'optimal':
             print("cvxopt.solvers.qp: optimization succeeded")
@@ -74,9 +75,9 @@ class SVClassifier(object):
             print("cvxopt.solvers.qp: optimization failed")
             sys.exit(1)
         self.__alpha = np.array(sol["x"])
-        print("alpha: ")
-        for i in range(self.__n):
-            print(i, self.__alpha[i])
+        # print("alpha: ")
+        # for i in range(self.__n):
+        #    print(i, self.__alpha[i])
     
     def __setClassifier(self):
         ths = []
@@ -92,7 +93,7 @@ class SVClassifier(object):
         for i in range(self.__n):
             W += self.__alpha[i] * self.__y[i] * self.__X[i]
 
-        print("theta candidates: ", [ths[i][0] for i in range(len(ths))])
+        # print("theta candidates: ", [ths[i][0] for i in range(len(ths))])
         self.__theta = np.mean(ths)
         # W = , θ = の形で識別器を出力する
         print("SVClassifier W = {}, θ = {}".format(W, self.__theta))
