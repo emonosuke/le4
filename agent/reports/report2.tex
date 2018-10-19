@@ -43,6 +43,7 @@
     \item utils.py - load\_data, plot\_decision\_regions(課題1で説明)と cross\_val\_score を実装
     \item scaler.py - MinMaxScaler(正規化)のクラスを実装
     \item extra\_data.py - iris, wine のデータセットの読み込み(sklearn.dateset)
+    \item grid\_search.py - Gaussカーネルのパラメータ探索(Grid Search)を行うエントリポイント
 \end{itemize}
 プログラムの実行は \\
 {\bf ./main.py [入力ファイルへのパス] [-h or -s] ([param c]) [-n or -p or -g] ([param kernel])} \\ 
@@ -175,8 +176,7 @@ train dataと同じパラメータでスケール調整する。
 \subsection*{MinMaxScalerクラス(scaler.py)}
 データの正規化を行う \\
 fit で与えられたデータの最小値、最大値をそれぞれmin, maxに代入して、
-transform(X) で (X - min) / (max - min) に変換する。
-これにより、各特徴量の値の範囲を0から1に揃えることができて、精度が向上することが期待される。
+transform で X = (X - min) / (max - min) と変換したXを返す。
 
 \section{評価結果}
 \subsection{ソフトマージンSVMの表現力}
@@ -228,6 +228,20 @@ $f(\bm{x}) = sign(\sum_{k=0} \alpha_k y_k \exp(-\|\bm{x_k}-\bm{x}\| / 2p^2) - \t
 $\sigma$が小さい場合は入力データ$\bm{x_k}$から遠く離れているサポートベクトルが識別に寄与することになるが、
 $\sigma$が大きい場合は入力データ$\bm{x_k}$近傍のサポートベクトルのみが識別に寄与することになる。これにより、
 過小適合、過学習が説明できる。
+
+最後に、sklearn.dataset.wineデータセットについて、正規化(MinMaxScaler)なし、正規化ありの場合をGrid Searchで比較した。
+図4, 5に示す通り、正規化が識別性能に大きな影響を与えることがわかる。
+wineデータセットでは特徴量が13あり、それぞれの値の取りうる範囲を0-1に統一することで特徴量ごとの値の取りうる範囲の違いに影響を
+受けなくなるため、性能が向上すると考えられる。
+\begin{figure}[!h]
+\centering \includegraphics[width=10cm]{nostd.png}
+\caption{正規化なし}
+\end{figure}
+\begin{figure}[!h]
+\centering \includegraphics[width=10cm]{std.png}
+\caption{正規化あり}
+\end{figure}
+
 
 \section{参考資料}
 \begin{itemize}

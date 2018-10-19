@@ -26,7 +26,6 @@ if __name__ == '__main__':
         p_acc = []
         for p in p_list:
             svm = SoftSVC(kernel_type, p, c)
-            # svm = HardSVC(kernel_type, p)
             acc = cross_val_score(X, y, svm)
             p_acc.append(acc)
         max_acc = max(max_acc, max(p_acc))

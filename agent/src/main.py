@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     # sc = MinMaxScaler()
     # X = sc.fit_transform(X)
-    svm.fit(X, y)
-    # cross_val_score(X, y, svm)
+    # svm.fit(X, y)
+    cross_val_score(X, y, svm)
 
-    plot_decision_regions(X, y, svm, resolution=0.1)
+    # plot_decision_regions(X, y, svm, resolution=0.1)

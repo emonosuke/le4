@@ -90,16 +90,12 @@ def cross_val_score(X, y, model, k=5):
         train_X = np.concatenate((X[0:part*i], X[part*(i+1):-1]), axis=0)
         train_y = np.concatenate((y[0:part*i], y[part*(i+1):-1]), axis=0)
 
-        """
         # 特徴量のスケーリング(正規化)
         sc = MinMaxScaler()
         train_X_std = sc.fit_transform(train_X)
         model.fit(train_X_std, train_y)
         test_X_std = sc.transform(test_X)
         pred = model.predict(test_X_std)
-        """
-        model.fit(train_X, train_y)
-        pred = model.predict(test_X)
         n_correct = sum(pred == test_y)
         acc = n_correct / len(pred)
         print("fold {}/{} accuracy: ".format(i+1, k), acc)
