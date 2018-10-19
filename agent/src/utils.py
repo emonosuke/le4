@@ -2,11 +2,17 @@ import numpy as np
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from scaler import MinMaxScaler 
+from extra_data import load_data_wine, load_data_iris
 
 def load_data(filepath):
     """
     @brief filepath にある sample_linear.dat 同様の形式のデータを X, y に読み込む
     """
+    if filepath == 'WINE':
+        return load_data_wine()
+    if filepath == 'IRIS':
+        return load_data_iris()
+    
     res = []
     f = open(filepath)
     line = f.readline()
@@ -70,19 +76,35 @@ def cross_val_score(X, y, model, k=5):
     """
     k-fold の交差検証を行う
     """
-    # TODO: shuffle
+    # 交差検証の前にX, yをシャッフルする
+    random_mask = np.arange(len(y))
+    np.random.shuffle(random_mask)
+    X = X[random_mask]
+    y = y[random_mask]
+
     part = len(y) // k
+    accs = []
     for i in range(k):
         test_X = X[part * i : part * (i+1)]
         test_y = y[part * i : part * (i+1)]
         train_X = np.concatenate((X[0:part*i], X[part*(i+1):-1]), axis=0)
         train_y = np.concatenate((y[0:part*i], y[part*(i+1):-1]), axis=0)
 
+        """
         # 特徴量のスケーリング(正規化)
         sc = MinMaxScaler()
         train_X_std = sc.fit_transform(train_X)
         model.fit(train_X_std, train_y)
         test_X_std = sc.transform(test_X)
         pred = model.predict(test_X_std)
+        """
+        model.fit(train_X, train_y)
+        pred = model.predict(test_X)
         n_correct = sum(pred == test_y)
-        print("fold {}/{} accuracy: ".format(i+1, k), n_correct / len(pred))
+        acc = n_correct / len(pred)
+        print("fold {}/{} accuracy: ".format(i+1, k), acc)
+        accs.append(acc)
+    res = np.mean(np.array(accs))
+    print("{}-fold average accuracy: ".format(k), res)
+    return res
+    
