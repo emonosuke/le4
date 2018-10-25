@@ -1,0 +1,39 @@
+\documentclass{jsarticle}
+
+\usepackage{listings,jlisting}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{bmpsize}
+\usepackage{bm}
+
+\lstset{
+    basicstyle={\ttfamily},
+    identifierstyle={\small},
+    commentstyle={\smallitshape},
+    keywordstyle={\small\bfseries},
+    ndkeywordstyle={\small},
+    stringstyle={\small\ttfamily},
+    frame={tb},
+    breaklines=true,
+    columns=[l]{fullflexible},
+    numbers=left,
+    xrightmargin=0zw,
+    xleftmargin=3zw,
+    numberstyle={\scriptsize},
+    stepnumber=1,
+    numbersep=1zw,
+    lineskip=-0.5ex
+}
+\begin{document}
+
+\title{計算機科学実験及演習4 エージェント 課題3}
+\author{1029-28-2473 二見 颯}
+\maketitle
+
+\section{プログラム概要}
+課題1で提出したハードマージンSVMに加え、ソフトマージンSVMを新しく実装した。
+モデルの評価のために、K-fold交差検証を行えるようにして、
+特にGaussカーネルSVMについて
+予測精度が最大となる最適なハイパーパラメータの組を求めた。
+データの正規化にも対応した。
+
+\end{document}
