@@ -12,7 +12,7 @@ class SVRegressor(object):
     ----------
     """
 
-    def __init__(self, ker_type, p):
+    def __init__(self, ker_type, p, c, eps):
         """
         カーネルに用いる関数とそのパラメータを設定する
         """
@@ -23,13 +23,13 @@ class SVRegressor(object):
             }
         self.__kf = ker_dict[ker_type]
         self.__p = p
+        self.__C = c
+        self.__eps = eps
 
-    def fit(self, X, y, c, eps):
+    def fit(self, X, y):
         self.__n = y.shape[0]
         self.__X = X
         self.__y = y
-        self.__C = c
-        self.__eps = eps
         # self.__a(alpha), self.__b(alpha*) を設定する 
         self.__setLagrange()
         # self.__bias を設定する
@@ -43,7 +43,7 @@ class SVRegressor(object):
         preds = []
         ab = np.array([(self.__a[j] - self.__b[j]) for j in range(self.__n)])
         ab = np.reshape(ab, (-1, ))
-        print("model predicting: ")
+
         for i in range(batch_size):
             K = self.__kf(self.__X, tX[i])
             preds.append(np.dot(ab, K) - self.__bias)
@@ -140,8 +140,10 @@ class SVRegressor(object):
             if self.__b[idx] > 0.01 and self.__b[idx] < 0.99 * self.__C:
                 b_sv.append(idx)
         
+        """
         print("support vectors from alpha: ", a_sv)
         print("support vectors from alpha*: ", b_sv)
+        """
         
         # 0 < a_n < C を満たす a_n について、 bias = -y_n + eps + sum((a_k - b_k) * kf(x_n, x_k))
         for sv in a_sv:
@@ -156,7 +158,7 @@ class SVRegressor(object):
                 bias += (self.__a[j] - self.__b[j]) * self.__kf(self.__X[sv], self.__X[j])
             biases.append(bias)
         
-        print("biases candidates: ", [biases[i][0] for i in range(len(biases))])
+        # print("biases candidates: ", [biases[i][0] for i in range(len(biases))])
         self.__bias = np.mean(biases)
     
     def __kernelPolynomial(self, a, b):

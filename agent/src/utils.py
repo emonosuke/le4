@@ -103,4 +103,31 @@ def cross_val_score(X, y, model, k=5):
     res = np.mean(np.array(accs))
     print("{}-fold average accuracy: ".format(k), res)
     return res
-    
+
+def cross_val_regression(X, y, svr, k=5):
+    """
+    SVR(回帰)について交差検証を行う
+    """
+    # 交差検証の前にX, yをシャッフルする
+    random_mask = np.arange(len(y))
+    np.random.shuffle(random_mask)
+    X = X[random_mask]
+    y = y[random_mask]
+
+    k = 5
+    part = len(y) // k
+    scores = []
+    for i in range(k):
+        print("{} th cross validation...".format(i + 1))
+        test_X = X[part * i : part * (i+1)]
+        test_y = y[part * i : part * (i+1)]
+        train_X = np.concatenate((X[0:part*i], X[part*(i+1):-1]), axis=0)
+        train_y = np.concatenate((y[0:part*i], y[part*(i+1):-1]), axis=0)
+
+        svr.fit(train_X, train_y)
+        score = svr.score(test_X, test_y, mth='MSE')
+        print("MSE score: ", score)
+        scores.append(score)
+    res = np.mean(np.array(scores))
+    print("{}-fold average score: ".format(k), res)
+    return res
