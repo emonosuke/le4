@@ -1,8 +1,9 @@
 import numpy as np
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
-from scaler import MinMaxScaler 
+from scaler import MinMaxScaler, StandardScaler
 from extra_data import load_data_wine, load_data_iris
+import math
 
 def load_data(filepath):
     """
@@ -104,7 +105,7 @@ def cross_val_score(X, y, model, k=5):
     print("{}-fold average accuracy: ".format(k), res)
     return res
 
-def cross_val_regression(X, y, svr, k=5):
+def cross_val_regression(X, y, svr, k=5, mth='MSE'):
     """
     SVR(回帰)について交差検証を行う
     """
@@ -124,10 +125,20 @@ def cross_val_regression(X, y, svr, k=5):
         train_X = np.concatenate((X[0:part*i], X[part*(i+1):-1]), axis=0)
         train_y = np.concatenate((y[0:part*i], y[part*(i+1):-1]), axis=0)
 
-        svr.fit(train_X, train_y)
-        score = svr.score(test_X, test_y, mth='MSE')
-        print("MSE score: ", score)
+        sc = StandardScaler()
+        train_X_std = sc.fit_transform(train_X)
+        test_X_std = sc.transform(test_X)
+
+        svr.fit(train_X_std, train_y)
+        score = svr.score(test_X_std, test_y, mth=mth)
+
+        if math.isnan(score):
+            print("nan detected: cross_val_regression terminated!!")
+            return np.nan
+        
+        print("{} score: ".format(mth), score)
         scores.append(score)
+    
     res = np.mean(np.array(scores))
     print("{}-fold average score: ".format(k), res)
     return res

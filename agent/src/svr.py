@@ -7,15 +7,9 @@ import math
 class SVRegressor(object):
     """
     SVR(Support Vector Regressor) を実装する
-
-    Attributes
-    ----------
     """
 
     def __init__(self, ker_type, p, c, eps):
-        """
-        カーネルに用いる関数とそのパラメータを設定する
-        """
         ker_dict = {
             '-n': lambda a, b: np.dot(a, b),
             '-p': self.__kernelPolynomial,
@@ -71,7 +65,7 @@ class SVRegressor(object):
             midY = np.mean(tY)
             udiff = [(tY[i] - predY[i]) for i in range(num)]
             ddiff = [(tY[i] - midY) for i in range(num)]
-            return 1.0 - np.dot(udiff, udiff) / np.dot(ddiff, ddiff)
+            return 1.0 - np.dot(udiff, udiff) / (np.dot(ddiff, ddiff) + 1e-6)
         
     def __setLagrange(self):
         tP = np.zeros((self.__n*2, self.__n*2)) # size 2n * 2n の numpy 配列 tP を 0 で初期化
@@ -135,15 +129,13 @@ class SVRegressor(object):
         b_sv = []
 
         for idx in range(self.__n):
-            if self.__a[idx] > 0.01 and self.__a[idx] < 0.99 * self.__C:
+            if self.__a[idx] > 0.01 * self.__C and self.__a[idx] < 0.99 * self.__C:
                 a_sv.append(idx)
-            if self.__b[idx] > 0.01 and self.__b[idx] < 0.99 * self.__C:
+            if self.__b[idx] > 0.01 * self.__C and self.__b[idx] < 0.99 * self.__C:
                 b_sv.append(idx)
         
-        """
-        print("support vectors from alpha: ", a_sv)
-        print("support vectors from alpha*: ", b_sv)
-        """
+        # print("support vectors from alpha: ", a_sv)
+        # print("support vectors from alpha*: ", b_sv)
         
         # 0 < a_n < C を満たす a_n について、 bias = -y_n + eps + sum((a_k - b_k) * kf(x_n, x_k))
         for sv in a_sv:
@@ -159,6 +151,8 @@ class SVRegressor(object):
             biases.append(bias)
         
         # print("biases candidates: ", [biases[i][0] for i in range(len(biases))])
+        if len(biases) == 0 :
+            print("ERROR: no support vectors!!")
         self.__bias = np.mean(biases)
     
     def __kernelPolynomial(self, a, b):
