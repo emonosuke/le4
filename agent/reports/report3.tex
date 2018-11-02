@@ -140,13 +140,16 @@ transform で X = (X - mean) / std と変換したXを返す。
 \subsection*{sanfrancisco\_main.py}
 San Francison-listings.csv を読み込んで、データの前処理を施した後に
 パラメータp, Cについて Grid Search を行い最適なパラメータを求める。(モデルの
-評価は交差検証によって行う) \\
+評価は交差検証によって行う)
+
 データについては、95の説明変数(特徴量)のうち、'latitude', 'longitude', 'accomodates', 'property\_type', 
 'room\_type', 'number\_of\_reviews', 'review\_scores\_rating'を用いる。
-目的変数は 'price' とする。また、データの個数はランダムにサンプリングした500個とする。 \\
+目的変数は 'price' とする。また、データの個数はランダムにサンプリングした500個とする。
+
 これらの選択した特徴量について、'review\_scores\_rating' には欠損値が含まれているため0へ変換した。
 'room\_type', 'property\_type' のカテゴリデータについては one-hot vector 表現に直す。
-これにより、n種類のカテゴリに対して、n-1種類の特徴量が新たに生成される。\\
+これにより、n種類のカテゴリに対して、n-1種類の特徴量が新たに生成される。
+
 以上の前処理を終えた後にGridSearchを実行する。
 
 \section{評価結果}
@@ -172,24 +175,68 @@ svr_sk = SVR(kernel='rbf', gamma=1.0, C=1e3, epsilon=0.1)
 
 \subsection{交差検証によるパラメータ探索(リスティングデータを用いる)}
 決定係数(R2 score) によってモデルを評価した。
+$\epsilon=0.1$で固定して、
 $c = [10.0, 100.0, 1000.0, 10000.0]$および$\sigma=[2^{-2}, 1, 2^2, 2^4, 2^6, 2^8]$の範囲で
 Grid Searchした結果、決定係数が最大となったのは、$c=100.0, \sigma=4.0$の場合で、決定係数は0.4934であった。
 \begin{figure}[!h]
 \includegraphics[width=15cm]{grid_sanfrancisco.png}
 \caption{grid search about SanFrancisco}
 \end{figure}
-ただし、図2上で plot されていない$(c,　\sigma)$ の組では、2次計画問題の後にサポートベクターが見つからず、
-SVR が機能していない。
+ただし、図2上で plot されていない$(c,　\sigma)$ の組では、2次計画問題の後にサポートベクターの数が0となり、
+SVR が構成できていない。
+
+\clearpage
 
 \section{考察}
-% SVR の式の意味(特に c, eps について)
+ソフトマージンSVMでは、
+\begin{eqnarray}
+\frac{1}{2}\|\bm{w}\|^2 + C \sum_{i=0} \xi_i
+\end{eqnarray}
+の最小化を考えたが、
+SVRでは、$h$を誤差関数として、
+\begin{eqnarray}
+\frac{1}{2}\|\bm{w}\|^2 + C \sum_{i=0} h(y_i - f(\bm{x_i}))
+\end{eqnarray}
+の最小化を考える。\\
+式(2)から、前半の項は重みの2乗を最小化することにより過学習を防ぐ働きをして、
+後半の項は回帰予測の誤差を最小化する働きをする。そのため、$C$は過学習と誤差最小化の
+トレードオフを表すパラメータであると言える。(ソフトマージンSVMの$C$と同様) \\
+誤差関数は
+\begin{eqnarray}
+h(y_i - f(\bm{x_i})) = \max(0, \|y_i - f(\bm{x_i}))\| - \epsilon)
+\end{eqnarray}
+で表され、$-\epsilon \leq $(誤差)$ \leq \epsilon$のときは(誤差)=0とみなす。
+SVRの回帰式は
+\begin{eqnarray*}
+f(\bm{x}) = \sum_{k=0} (a_k - b_k) K(\bm{x_k}, \bm{x}) - \theta
+\end{eqnarray*}
+である。
+誤差の絶対値が$\epsilon$未満($\epsilon$チューブとよぶ)
+のデータ点では、$(a_k - b_k) = 0$となり、SVRの回帰式には寄与しない。
+一方、$\epsilon$チューブ上あるいは、その外のデータ点はサポートベクターとなり、
+これらの点によってSVRの回帰式を決定する。
 
-% 評価関数
+\begin{figure}[!h]
+\includegraphics[width=15cm]{eps_svr.jpg}
+\caption{SVR epsilon}
+\end{figure}
+パラメータ$\epsilon$を増加させると不感帯が広がり、ノイズの影響を受けづらくなるが、説明変数に対しても
+鈍感になる。また、$\epsilon$を増やすことにより、サポートベクターの数は減少して、0になった場合には
+SVRの回帰式を構成できない。
 
-% SanFrancisco data に関する考察
+GridSearchのときには、決定係数によってモデルを評価した。
+決定係数は
+\begin{eqnarray}
+R2 = 1 - \frac{\sum_{i=0} (y_i - \hat{y_i})^2}{\sum_{i=0} (y_i - \bar{y_i})^2}
+\end{eqnarray}
+で表すことができる。
+R2の分子は回帰モデルでは説明できない目的変数のばらつき(変動)、
+分母は目的変数の平均値のまわりにおけるばらつき(変動)を表していて、R2は目的変数自体の変動のうち、
+回帰モデルで説明できるものの割合を示しているといえる(決定係数が1に近づくほど良いモデルであるといえる)
+
 SanFrancisco data の 'price'の値について、最大値9000.0, 最小値0.0, 平均213.65で、
-図3の通り、2000以降の高価格帯にはデータ数は少なく外れ値と考える方がよい。そのため、モデルの訓練および
-評価には500以下のデータのみを用いることとした。
+図4の通り、2000以降の高価格帯にはデータ数は少なく外れ値と考える方がよい。そのため、モデルの訓練および
+評価には500以下のデータのみを用いることとした。(sanfrancisco\_main.py)
 \begin{figure}[!h]
 \includegraphics[width=18cm]{prices.png}
 \caption{SanFrancisco price}
@@ -198,6 +245,8 @@ SanFrancisco data の 'price'の値について、最大値9000.0, 最小値0.0,
 \section{参考資料}
 \begin{itemize}
     \item scikit-learn と Tensorflow による実践機械学習 Aurelien Geron 著
+    \item https://datachemeng.com/supportvectorregression/
+    \item Python機械学習プログラミング Sebastian Raschka 著
 \end{itemize}
 
 \end{document}

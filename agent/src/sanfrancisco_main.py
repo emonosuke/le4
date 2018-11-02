@@ -40,7 +40,7 @@ if __name__ == '__main__':
     # prices > 500 のデータを削除
     df.drop(df.index[df.price > 500], inplace=True)
 
-    # 特徴量は 7 つに絞り、1000個のデータをランダムサンプリングする
+    # 特徴量は 7 つに絞り、500個のデータをランダムサンプリングする
     df = df[['latitude', 'longitude', 'accommodates', 'property_type', 'room_type', 'number_of_reviews', 'review_scores_rating', 'price']]
     df = df.sample(n=500)
 
