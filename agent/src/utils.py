@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scaler import MinMaxScaler, StandardScaler
 from extra_data import load_data_wine, load_data_iris
 import math
+import pandas as pd
 
 def load_data(filepath):
     """
@@ -108,6 +109,7 @@ def cross_val_score(X, y, model, k=5):
 def cross_val_regression(X, y, svr, k=5, mth='MSE'):
     """
     SVR(回帰)について交差検証を行う
+    StandardScaler 処理も含まれている
     """
     # 交差検証の前にX, yをシャッフルする
     random_mask = np.arange(len(y))
@@ -142,3 +144,82 @@ def cross_val_regression(X, y, svr, k=5, mth='MSE'):
     res = np.mean(np.array(scores))
     print("{}-fold average score: ".format(k), res)
     return res
+
+def load_sanfrancisco(sample_size=0):
+    """
+    San Francisco-listings.csv を読み込み、前処理した結果を返す
+
+    Parameters
+    ----------
+    sample_size(int): データセットからランダムにサンプリングする個数
+
+    Returns
+    ----------
+    X(numpy.array(sample_size, 11)): 説明変数 
+    y(numpy.array(sample_size, 1)): 目的変数
+    """
+
+    def dollartofloat(s):
+        """
+        '$1,300.00' 等の価格を表す str を float へ変換
+        """
+        s = s.replace('$', '')
+        s = s.replace(',', '')
+        return float(s)
+
+    def addothers(s):
+        """
+        Apartment, House, Condominium, Guest suite 以外の type は Others とする
+        """
+        if s in ['Apartment', 'House', 'Condominium', 'Guest suite']:
+            return s
+        else:
+            return 'Others'
+    
+
+    df = pd.read_csv('./data/San Francisco-listings.csv')
+
+    # prices を float へ変換
+    df['price'] = df['price'].map(dollartofloat)
+
+    # prices > 500 のデータを削除
+    df.drop(df.index[df.price > 500], inplace=True)
+
+    # 特徴量を絞る
+    df = df[['latitude', 'longitude', 'accommodates', 'property_type', 'room_type', 'number_of_reviews', 'review_scores_rating', 'price']]
+    # print("df size: ", len(df))
+
+    # sample_size = 0 または sample_size が行数を超えている場合には、全て利用
+    if sample_size == 0 or sample_size > len(df):
+        print("load sanfrancisco: read {} data(all)".format(len(df)))
+    else:
+        print("load sanfrancisco: read {} / {} data".format(sample_size, len(df)))
+        df = df.sample(n=sample_size)
+
+    # y を作成
+    y = np.array(df['price'].values)
+
+    # 欠損値(review_scores_rating)を 0 へ変換
+    df = df.fillna(0)
+
+    # 数値データはそのまま X へ
+    df_processed = df[['latitude', 'longitude', 'accommodates', 'number_of_reviews', 'review_scores_rating']]
+    X = df_processed.values
+
+    # room_type は onehot vector に変換して X へ merge
+    df_room = pd.get_dummies(df[['room_type']], drop_first=True)
+    X = np.hstack((X, df_room.values))
+
+    # property_type は Apartment, House, Condominium, Guest Suit, Others に分類したのち、one-hot vector に変換して X へ merge
+    df_property = df[['property_type']]
+    df_property = df_property.applymap(addothers)
+    df_property = pd.get_dummies(df_property, drop_first=True)
+    X = np.hstack((X, df_property.values))
+
+    X = X.astype(np.float32)
+    # 確認
+    # print(type(X))
+    # print(X)
+    # print("X: ", X.shape, "y: ", y.shape)
+
+    return X, y
