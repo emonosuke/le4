@@ -227,7 +227,7 @@ SVRAgent関数はパラメータを引数にとって、交差検証で精度を
     \caption{Agent1 vs Agent2}
 \end{table}
 
-\section{考察}
+\section{考察(課題4-1 + 課題4-2)}
 課題4-1では、表1より提示価格を予測価格の85\%とした場合が総利益が最大になった。
 提示価格の予測価格に対する割合を下げることで、予測価格がリスティングデータの価格より高い場合にも提示価格が予測価格を下回る場合が多くなり、
 成功回数は上がるが、一回の提供あたりの利益が小さくなる。そのトレードオフを考慮して85\%あたりが望ましい。
@@ -251,10 +251,24 @@ SVRAgent関数はパラメータを引数にとって、交差検証で精度を
 ハイパーパラメータの探索において、一般的な手法としてグリッドサーチがある。
 グリッドサーチは離散的なパラメータの組の候補について全探索を行う。
 一方、ベイズ最適化では、ある連続的な定義域をもつ入力(パラメータ)$x$に対して、
-ブラックボックス関数$f(x)$を最小化するような$x$を逐次的に求める手法である。
+ブラックボックス関数$y = f(x)$を最小化(あるいは最大化)するような$x$を逐次的に求める手法である。
 次の観測点$x$の候補の求め方は全探索ではなく、これまでの関数の評価値に基づいて判断する。
 
-EI戦略のベイズ最適化の場合、
+次の観測点を決定する戦略として、ここではEI戦略を用いた。
+EI(期待改善量)戦略では、評価値$y$とこれまでで最高の評価値$y_{best}$として、
+$y - y_{best}$の期待値(獲得関数)が最も高くなる点を次に観測する。
+ブラックボックス関数はガウス過程に従うと仮定して、これまでの観測点から
+信頼区間を形成して、関数の形をある程度予想することを考える。(図3, 参考文献5より)
+\begin{figure}[H]
+\centering
+\includegraphics[width=10cm]{gauss.jpg}
+\caption{Gaussian process}
+\end{figure}
+未観測点の期待値$\mu$と分散$\sigma^2$を計算すると、$\mu$によって、未観測点の評価値の大きさ、
+$\sigma$によって周囲の$x$(パラメータ)がどの程度観測されているかを知ることができる。
+$\mu$が最大の点を次の観測点に選ぶと、評価値が大きくなることが予想できるが、局所解に陥る可能性が
+あるので適宜$\sigma$が大きい点も観測する。
+
 \subsection{回帰モデルの評価}
 決定係数は
 \begin{eqnarray}
@@ -268,23 +282,97 @@ R2の分子は回帰モデルでは説明できない目的変数のばらつき
 
 平均二乗誤差(MSE)は
 \begin{eqnarray*}
-    \sum_{i=0} (y_i - \hat{y_i})^2 / n
+    \frac{1}{n} \sum_{i=0} (y_i - \hat{y_i})^2
 \end{eqnarray*}
+
+
 平均絶対誤差(MAE)は
 \begin{eqnarray*}
-    \sum_{i=0} \|y_i - \hat{y_i}\| / n
+    \frac{1}{n} \sum_{i=0} \|y_i - \hat{y_i}\|
 \end{eqnarray*}
 と表される。
 
-% RMSE と MSE の比
+MSEの最小化は、誤差に正規分布を仮定した場合の最尤推定といえる。 \\
+正規分布は、説明変数を$x_i$, 目的変数を$y_i$として
+\begin{eqnarray*}
+    p(y_i) = \frac{1}{\sqrt{2\pi}\sigma} \exp (-\frac{(y_i - f(x_i))^2}{2 \sigma^2})
+\end{eqnarray*}
+その対数尤度関数は
+\begin{eqnarray*}
+    \log \prod_{i} p(y_i) &=& \sum_{i} \log p(y_i) \\
+    &=& C - \frac{1}{2\sigma^2} \sum_{i} (y_i - f(x_i))^2
+\end{eqnarray*}
+
+となり、その最大化は$\sum_{i} (y_i - f(x_i))$の最小化となる。
+
+MAEの最小化は、誤差にラプラス分布を仮定した場合の最尤推定といえる。 \\
+ラプラス分布は
+\begin{eqnarray*}
+    p(y_i) = \frac{1}{2\phi} \exp (-\frac{\|y_i - f(x_i)\|}{\phi})
+\end{eqnarray*}
+その対数尤度関数は
+\begin{eqnarray*}
+    \log \prod_{i} p(y_i)
+    = C - \frac{1}{\phi} \sum_{i} \|y_i - f(x_i)\|
+\end{eqnarray*}
+
+となり、その最大化は$\sum_{i} \|y_i - f(x_i)\|$の最小化となる。
+
+一般的に、正規分布よりもラプラス分布の方が分布の裾野が広いことが知られているので、
+多くの外れ値が存在するデータの誤差を評価するときには、MSEよりMAEのほうが指標として適切である。
+
+\newpage
+
+% RMSE と MAE の比
+誤差の分布からモデルの良し悪しを評価することを考える。
+
+誤差の絶対値を$e_i = \|y_i - f(x_i)\|$として、RMSE(Root Mean Squared Error)を$\sqrt{MSE}$と定義すると、
+\begin{eqnarray*}
+    RMSE^2 &=& \frac{\sum_{i} e_i^2}{n} \\
+    MAE^2 &=& \frac{(\sum_{i} e_i)^2}{n^2}
+\end{eqnarray*}
+ここで
+\begin{eqnarray*}
+    RMSE^2 - MAE^2 = Var(e_i)
+\end{eqnarray*}
+が成立する。
+さらに誤差の絶対値の平均($\bar{e_i}$)はMAEと一致するので、
+\begin{eqnarray*}
+\frac{RMSE}{MAE} = \sqrt{1 + \frac{Var(e_i)}{\bar{e_i}^2}}
+\end{eqnarray*}
+
+誤差が平均0, 標準偏差$\sigma$の正規分布に従う場合、誤差の絶対値の確率密度関数は$0 \leq e$で
+\begin{eqnarray*}
+    p(e) = \frac{2}{\sqrt{2\pi} \sigma} \exp (-\frac{e^2}{2 \sigma^2})
+\end{eqnarray*}
+$\bar{e}$および$Var(e)$は、
+\begin{eqnarray*}
+    \bar{e} &=& \int_0^{\infty} e p(e) de \\
+    Var(e) &=& \int_0^{\infty} (e - \bar{e})^2 p(e) de
+\end{eqnarray*}
+これらを用いて、
+\begin{eqnarray*}
+    \frac{RMSE}{MAE} = \sqrt{\frac{\pi}{2}} = 1.253...
+\end{eqnarray*}
+
+誤差が平均0, 分散$2\phi^2$のラプラス分布に従う場合、
+\begin{eqnarray*}
+    \frac{RMSE}{MAE} = \sqrt{1 + \frac{\phi^2}{(\phi)^2}} = \sqrt{2} = 1.414...
+\end{eqnarray*}
+
+SanFrancisco リスティングデータから500ドルより大きいデータを取り除いて
+1000個を利用するデータとして、最適化したSVR($\sigma = 9.50, C = 2.70 * 10^4, \epsilon = 9.00 * 10^{-2}$)
+を交差検証して評価した。
+このとき、RMSE = 70.67, MAE = 49.71となり、RMSE / MAEは1.4216となった。
+モデルの予測とデータとの誤差はラプラス分布に近いことがわかった。(外れ値が比較的多い)
 
 \section{参考文献}
-\begin{itemize}
+\begin{enumerate}
     \item scikit-learn と Tensorflow による実践機械学習 Aurelien Geron 著
     \item Python機械学習プログラミング Sebastian Raschka 著
     \item ベイズ最適化(https://www.kumilog.net/entry/bayesian-optimization)
     \item 精度評価指標と回帰モデルの評価(https://funatsu-lab.github.io/open-course-ware/basic-theory/accuracy-index/)
     \item 機械学習のためのベイズ最適化入門(https://www.slideshare.net/hoxo\_m/ss-77421091)
-\end{itemize}
+\end{enumerate}
 
 \end{document}

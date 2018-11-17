@@ -58,7 +58,7 @@ class SVRegressor(object):
             return (1/num) * np.dot(diff, diff)
         elif mth == 'MAE':
             # 平均絶対誤差
-            diff = [math.abs(tY[i] - predY[i]) for i in range(num)]
+            diff = [abs(tY[i] - predY[i]) for i in range(num)]
             return (1/num) * np.sum(diff)
         elif mth == 'R2':
             # 決定係数
