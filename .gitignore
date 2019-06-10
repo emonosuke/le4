@@ -6,3 +6,5 @@ __pycache__/
 *.dvi
 *.fdb_latexmk
 submit/
+.ipynb_checkpoints/
+data/
